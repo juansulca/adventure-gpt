@@ -6,10 +6,10 @@ function TypingText({ text }: { text: string }) {
   useEffect(() => {
     let index = 0;
     const timer = setInterval(() => {
-      setDisplayedText((prev) => prev + text.charAt(index));
-      index++;
+      setDisplayedText((prev) => `${prev}${text.charAt(index)}`);
+      index += 1;
       if (index === text.length) clearInterval(timer);
-    }, 70);
+    }, 60);
 
     return () => clearInterval(timer);
   }, [text]);

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { BufferMemory } from "langchain/memory";
 import { UpstashRedisChatMessageHistory } from "@langchain/community/stores/message/upstash_redis";
 import { ConversationChain } from "langchain/chains";
@@ -7,14 +8,25 @@ import {
   SystemMessagePromptTemplate,
 } from "@langchain/core/prompts";
 import { nanoid } from "nanoid";
-import { initialPrompt, jsonTemplate } from "./prompts";
+import { gamePrompt, initialPrompt, jsonTemplate } from "./prompts";
 import { ChatOpenAI } from "@langchain/openai";
+import { StructuredOutputParser } from "@langchain/core/output_parsers";
 
 const model = new ChatOpenAI({
   modelName: "gpt-3.5-turbo",
   temperature: 0,
-  maxTokens: 200,
+  maxTokens: 400,
 });
+
+const parser = StructuredOutputParser.fromZodSchema(z.object({
+  story: z.string(),
+  choices: z.object({
+    a: z.string(),
+    b: z.string(),
+    c: z.string().optional(),
+    d: z.string().optional(),
+  }),
+}))
 
 const getChain = (sessionId: string) => {
   const memory = new BufferMemory({
@@ -48,7 +60,7 @@ export async function chat(input: string, sessionId: string = nanoid()) {
 
   const res = await chain.invoke({ input: formattedChatPrompt });
   console.log("===>", res);
-  const body = JSON.parse(res.response);
+  const body = await parser.parse(res.response);
   return body;
 }
 
@@ -56,11 +68,11 @@ export async function startChat(input: string, sessionId: string = nanoid()) {
   const chain = getChain(sessionId);
   // const initPrompt = SystemMessagePromptTemplate.fromTemplate(initialPrompt);
   const template = ChatPromptTemplate.fromMessages([
-    ["system", initialPrompt],
+    ["system", gamePrompt],
     ["human", "The story start with: {start}"]
   ]);
   const formattedChatPrompt = await template.format({
-    json_template: jsonTemplate,
+    output_format: parser.getFormatInstructions(),
     start: input,
   });
 
@@ -72,7 +84,7 @@ export async function startChat(input: string, sessionId: string = nanoid()) {
   const res = await chain.invoke({ input: formattedChatPrompt });
   console.log("===>", res);
   // // configure the model to return json like responses.
-  const body = JSON.parse(res.response);
+  const body = await parser.parse(res.response);
   console.log(body);
   return body;
 }
