@@ -21,8 +21,9 @@ function TypingText({ text }: { text: string }) {
 
 export default function GameText({ text }: { text: string }) {
   return (
-    <div className="flex h-2/3 w-full items-center justify-center">
-      <TypingText text={text} />
+    <div className="flex h-2/3 w-full items-center justify-center border rounded-lg p-4">
+      {/* <TypingText text={text} /> */}
+      {text}
     </div>
   );
 }
